@@ -535,6 +535,17 @@ PAGE = r"""<!doctype html>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>__TITLE__</title>
+<meta name="description" content="本地优先的照片年度报告：足迹地图、拍摄日历与每一次远行。数据没有离开这台电脑。">
+<meta name="theme-color" content="#0a0b0d">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="年轮 Rings">
+<meta property="og:title" content="__TITLE__">
+<meta property="og:description" content="足迹地图、拍摄日历与每一次远行——全部在浏览器里算出来的。">
+<meta property="og:image" content="https://setout472.github.io/rings/assets/og.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:image" content="https://setout472.github.io/rings/assets/og.png">
 <style>__CSS__</style>
 </head>
 <body>

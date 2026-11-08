@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{background:#0a0b0d;height:100%}
+  body{
+    width:1200px;height:630px;min-height:630px;overflow:hidden;
+    background:#0a0b0d;color:#e9edf2;
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei","Noto Sans SC",sans-serif;
+    display:flex;align-items:center;
+    position:relative;
+  }
+  .glow{position:absolute;width:900px;height:900px;border-radius:50%;filter:blur(90px);opacity:.35}
+  .g1{background:#0f766e;left:-320px;top:-420px}
+  .g2{background:#3730a3;right:-260px;bottom:-480px;opacity:.28}
+  .wrap{position:relative;display:flex;align-items:center;gap:56px;padding:0 64px;width:100%}
+
+  .left{flex:1;min-width:0}
+  .brand{display:flex;align-items:center;gap:11px;font-size:22px;font-weight:800;letter-spacing:-.01em}
+  .brand svg{width:26px;height:26px}
+  .brand em{font-style:normal;font-family:ui-monospace,monospace;font-size:12px;
+    letter-spacing:.2em;color:#7e8794;font-weight:500}
+  h1{font-size:56px;line-height:1.12;letter-spacing:-.045em;font-weight:800;margin:26px 0 0}
+  h1 em{font-style:normal;color:#5eead4}
+  p{margin:20px 0 0;font-size:19px;color:#b7c0cd;line-height:1.55;max-width:19ch}
+  .meta{margin-top:34px;font-family:ui-monospace,monospace;font-size:13px;
+    color:#7e8794;letter-spacing:.06em;display:flex;gap:16px;align-items:center}
+  .meta i{width:4px;height:4px;border-radius:50%;background:#39414d;display:block}
+
+  .shot{width:430px;flex:0 0 430px;position:relative}
+  .frame{border:1px solid #232830;border-radius:16px;overflow:hidden;background:#0d1014;
+    box-shadow:0 30px 80px -20px rgba(0,0,0,.9)}
+  .bar{display:flex;gap:6px;align-items:center;padding:9px 12px;border-bottom:1px solid #232830}
+  .bar i{width:8px;height:8px;border-radius:50%;background:#2b323c;display:block}
+  .bar span{margin-left:8px;font-family:ui-monospace,monospace;font-size:10px;color:#5f6875}
+  .frame img{display:block;width:100%;height:352px;object-fit:cover;object-position:top}
+</style>
+</head>
+<body>
+  <div style="position:fixed;inset:0;background:#0a0b0d;z-index:-1"></div>
+  <div class="glow g1"></div>
+  <div class="glow g2"></div>
+
+  <div class="wrap">
+    <div class="left">
+      <div class="brand">
+        <svg viewBox="0 0 32 32" fill="none">
+          <circle cx="16" cy="16" r="13" stroke="#5eead4" stroke-width="2"/>
+          <circle cx="16" cy="16" r="7" stroke="#5eead4" stroke-width="2" opacity=".55"/>
+          <circle cx="16" cy="16" r="2" fill="#5eead4"/>
+        </svg>
+        年轮 <em>RINGS</em>
+      </div>
+      <h1>把相册拖进来，<br>看你这三年<em>去过哪里</em>。</h1>
+      <p>本地优先的照片年度报告。不上传，不注册，带走一个文件。</p>
+      <div class="meta">
+        <span>零上传</span><i></i><span>无后端</span><i></i><span>纯静态</span>
+      </div>
+    </div>
+
+    <div class="shot">
+      <div class="frame">
+        <div class="bar"><i></i><i></i><i></i><span>rings.local/report/2022</span></div>
+        <img src="../out/preview_footprint.png" alt="">
+      </div>
+    </div>
+  </div>
+</body>
+</html>

@@ -2,7 +2,7 @@
 
 **在线体验 → https://setout472.github.io/rings/**
 ｜[看示例报告](https://setout472.github.io/rings/web/report.html?demo=1)
-｜[看 79 秒演示](video/demo.mp4)
+｜[看 66 秒演示](video/demo.mp4)
 
 > 入口页 [index.html](index.html) ｜ 产品说明 [PRODUCT.md](PRODUCT.md) ｜ 部署 [DEPLOY.md](DEPLOY.md)
 >
@@ -16,7 +16,7 @@
 
 [![演示视频](video/poster.jpg)](video/demo.mp4)
 
-▶ **[看 79 秒演示](video/demo.mp4)** —— 画面是真实浏览器录屏（CDP 逐帧抓取），
+▶ **[看 66 秒演示](video/demo.mp4)** —— 画面是真实浏览器录屏（CDP 逐帧抓取），
 配音由 Edge TTS 生成，全程可复现：`python video/build.py`
 
 两个小工具，共用一个叙事引擎：
@@ -256,3 +256,4 @@ node   tests/engine.test.js       # JS 引擎 ↔ Python 引擎：151 项逐字�
 - 接入地理编码，替换离线城市表
 - 阅读报告支持跨年（多个 Wrapped 叠加）
 - 加一个「和去年的自己对比」模块
+

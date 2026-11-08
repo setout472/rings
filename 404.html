@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>页面不存在 · 年轮 Rings</title>
+<meta name="robots" content="noindex">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='13' fill='none' stroke='%235eead4' stroke-width='2'/%3E%3Ccircle cx='16' cy='16' r='7' fill='none' stroke='%235eead4' stroke-width='2' opacity='.6'/%3E%3Ccircle cx='16' cy='16' r='2' fill='%235eead4'/%3E%3C/svg%3E">
+<style>
+  :root{
+    --bg:#0a0b0d; --ink:#e9edf2; --ink-2:#b7c0cd; --muted:#7e8794;
+    --accent:#5eead4; --line:#232830;
+    --font:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Hiragino Sans GB","Microsoft YaHei","Noto Sans SC",sans-serif;
+    --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;min-height:100vh;background:var(--bg);color:var(--ink);font-family:var(--font);
+    display:flex;align-items:center;justify-content:center;text-align:center;padding:32px;
+    -webkit-font-smoothing:antialiased;
+    background-image:radial-gradient(60% 50% at 50% 0%,rgba(94,234,212,.10),transparent 70%);
+  }
+  .box{max-width:520px}
+  .code{font-family:var(--mono);font-size:13px;letter-spacing:.24em;color:var(--muted);text-transform:uppercase}
+  h1{font-size:clamp(30px,5vw,44px);letter-spacing:-.04em;line-height:1.15;margin:20px 0 14px;font-weight:800}
+  p{color:var(--ink-2);font-size:16px;margin:0 0 32px;line-height:1.7}
+  a.btn{display:inline-flex;align-items:center;gap:8px;padding:12px 22px;border-radius:999px;
+    background:var(--accent);color:#04231f;font-weight:700;font-size:15px;text-decoration:none}
+  a.ghost{display:inline-block;margin-left:14px;color:var(--muted);font-size:14px;text-decoration:none}
+  a.ghost:hover{color:var(--ink)}
+  .mark{width:44px;height:44px;margin:0 auto 26px;display:block;opacity:.9}
+</style>
+</head>
+<body>
+  <div class="box">
+    <svg class="mark" viewBox="0 0 32 32" fill="none">
+      <circle cx="16" cy="16" r="13" stroke="#5eead4" stroke-width="1.6"/>
+      <circle cx="16" cy="16" r="7" stroke="#5eead4" stroke-width="1.6" opacity=".55"/>
+      <circle cx="16" cy="16" r="2" fill="#5eead4"/>
+      <path d="M16 3 L16 0 M16 29 L16 32" stroke="#5eead4" stroke-width="1.6" opacity=".35"/>
+    </svg>
+    <div class="code">404 / Not Found</div>
+    <h1>这一页没有照片。</h1>
+    <p>地址可能拼错了，或者这个文件已经不在了。<br>回首页重新出发。</p>
+    <a class="btn" href="/rings/">回到首页 →</a>
+    <a class="ghost" href="/rings/web/report.html?demo=1">直接看示例</a>
+  </div>
+</body>
+</html>

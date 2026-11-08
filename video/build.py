@@ -36,7 +36,7 @@ LEAD_IN = 0.6
 SHOTS = [
     {
         "id": "01_gap",
-        "say": "三千七百多张照片。最难被算出来的，不是你去过哪。",
+        "say": "三千七百多张照片里，最难被算出来的，不是你去过哪儿。",
         "prep": "report#3",          # 2022 年
         "anchor": ".cal-wrap",
         "scroll": 90,
@@ -44,7 +44,7 @@ SHOTS = [
     },
     {
         "id": "02_what",
-        "say": "我做了个小工具，把相册变成一份年度报告。不注册，不上传，也不用装任何东西。",
+        "say": "我做了个小工具，把相册变成一份年度报告——不用注册，不用上传，也不用装任何东西。",
         "prep": "landing",
         "anchor": None,
         # 只挪 40px：挪多了大标题会被顶部导航切掉
@@ -53,7 +53,7 @@ SHOTS = [
     },
     {
         "id": "03_app",
-        "say": "相册拖进去就行。照片在你自己的电脑上读出来，算完直接出报告——一张都不会上传。",
+        "say": "相册拖进去就行，照片在你自己的电脑上读出来，算完直接出报告，一张都不会上传。",
         "prep": "app",
         "anchor": None,
         "scroll": 0,
@@ -61,7 +61,7 @@ SHOTS = [
     },
     {
         "id": "04_numbers",
-        "say": "三千七百多张照片，最后变成这几个数字。这些不是我填的，是从每张照片的元数据里算出来的。",
+        "say": "三千七百多张照片，最后变成这几个数字，这些不是我填的，是从每张照片的元数据里算出来的。",
         "prep": "report#0",
         "anchor": ".statgrid",
         "scroll": -40,
@@ -69,7 +69,7 @@ SHOTS = [
     },
     {
         "id": "05_route",
-        "say": "点开一次行程，地图会放大到那一次的路线。新疆那趟走得最远，七千多公里来回。",
+        "say": "点开一次行程，地图会放大到那一次的路线，新疆那趟走得最远。",
         "prep": "report#1+click_trip",
         "anchor": ".mapcard",
         "scroll": 0,
@@ -77,7 +77,7 @@ SHOTS = [
     },
     {
         "id": "06_silence",
-        "say": "然后是这块空白。二〇二二年三月到六月，一张照片都没有。报告自己把它算成了一句话：最长的一次沉默，八十三天。",
+        "say": "然后是这块空白，二〇二二年三月到六月，一张照片都没有，报告自己把它算成了一句话，最长的一次沉默，八十三天。",
         "prep": "report#3",
         "anchor": ".cal-wrap",
         "scroll": 40,
@@ -85,7 +85,7 @@ SHOTS = [
     },
     {
         "id": "07_trust",
-        "say": "页面底部还写着另一件事：多少张没有定位，多少张的时间不可信，剔掉了几个异常点。",
+        "say": "页面底部还写着另一件事，多少张没有定位，多少张的时间不可信，剔掉了几个异常点。",
         "prep": "report#0",
         "anchor": ".quality",
         "scroll": 60,
@@ -108,8 +108,65 @@ def ffmpeg() -> str:
     return imageio_ffmpeg.get_ffmpeg_exe()
 
 
-def synth(shot: dict) -> float:
-    """合成一段配音，转成 48k 单声道 wav，返回时长。
+def tighten(src: str, dst: str, comma: float = 0.11, period: float = 0.24,
+            min_sil: float = 0.16) -> float:
+    """把 TTS 在标点后塞的长停顿压短，返回新时长。
+
+    Edge TTS 每个标点后要停 300~600ms，句子一密就变成一顿一顿。
+    分两档处理：短的（逗号级）压到 110ms，长的（句号级）保留 220ms——
+    全压到 110ms 会变成不喘气，全保留又是原来的卡顿。
+    """
+    import numpy as np
+
+    with wave.open(src) as w:
+        sr = w.getframerate()
+        d = np.frombuffer(w.readframes(w.getnframes()), dtype=np.int16).astype(np.float32)
+    if not len(d):
+        return 0.0
+
+    hop = max(1, int(sr * 0.005))
+    frames = len(d) // hop
+    rms = np.sqrt((d[: frames * hop].reshape(frames, hop) ** 2).mean(axis=1))
+    thr = max(50.0, float(rms.max()) * 0.04)
+    quiet = rms < thr
+
+    min_n = int(min_sil * sr)
+    period_n = int(0.30 * sr)   # 原始停顿 ≥300ms 的按句末处理，保留更长的呼吸
+
+    pieces = []
+    i = 0
+    while i < frames:
+        if not quiet[i]:
+            j = i
+            while j < frames and not quiet[j]:
+                j += 1
+            pieces.append(d[i * hop: j * hop])
+            i = j
+        else:
+            j = i
+            while j < frames and quiet[j]:
+                j += 1
+            start, end = i * hop, j * hop
+            seg = end - start
+            if seg >= min_n:
+                want = int((period if seg >= period_n else comma) * sr)
+                c = (start + end) // 2
+                pieces.append(d[max(0, c - want // 2): c + want // 2])
+            else:
+                pieces.append(d[start:end])
+            i = j
+
+    out = np.clip(np.concatenate(pieces), -32768, 32767).astype(np.int16) if pieces else d.astype(np.int16)
+    with wave.open(dst, "w") as w:
+        w.setnchannels(1)
+        w.setsampwidth(2)
+        w.setframerate(sr)
+        w.writeframes(out.tobytes())
+    return len(out) / float(sr)
+
+
+def synth(shot: dict) -> tuple[str, float]:
+    """合成一段配音，转成 48k 单声道 wav，压掉长停顿，返回 (文件名, 时长)。
 
     直接调库而不是 `python -m edge_tts`：子进程不会继承 sys.path 里的 _vendor，
     而且这样少一层进程启动。
@@ -119,20 +176,21 @@ def synth(shot: dict) -> float:
     import edge_tts
 
     mp3 = os.path.join(AUDIO, shot["id"] + ".mp3")
-    wav = os.path.join(AUDIO, shot["id"] + ".wav")
+    raw = os.path.join(AUDIO, shot["id"] + "_raw.wav")
+    tight = os.path.join(AUDIO, shot["id"] + ".wav")
 
     async def _say():
-        await edge_tts.Communicate(shot["say"], VOICE, rate="-4%").save(mp3)
+        await edge_tts.Communicate(shot["say"], VOICE).save(mp3)
 
     asyncio.run(_say())
 
     subprocess.run(
         [ffmpeg(), "-y", "-loglevel", "error", "-i", mp3,
-         "-ar", "48000", "-ac", "1", wav],
+         "-ar", "48000", "-ac", "1", raw],
         check=True,
     )
-    with wave.open(wav) as w:
-        return w.getnframes() / float(w.getframerate())
+    dur = tighten(raw, tight)
+    return shot["id"] + ".wav", dur
 
 
 def main() -> None:
@@ -155,11 +213,12 @@ def main() -> None:
         if args.reuse_audio and os.path.exists(wav):
             with wave.open(wav) as w:
                 dur = w.getnframes() / float(w.getframerate())
+            name = shot["id"] + ".wav"
         else:
-            dur = synth(shot)
+            name, dur = synth(shot)
         hold = round(dur + shot["pad"], 2)
         total += hold
-        manifest.append({**shot, "audio": shot["id"] + ".wav",
+        manifest.append({**shot, "audio": name,
                          "audio_dur": round(dur, 2), "hold": hold})
         print(f"  {shot['id']:<14} 配音 {dur:5.2f}s  画面 {hold:5.2f}s")
 
