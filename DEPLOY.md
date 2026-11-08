@@ -1,5 +1,10 @@
 # 部署到 GitHub Pages
 
+> ✅ **已部署：https://setout472.github.io/rings/**
+> 仓库：https://github.com/setout472/rings （public，Pages 来源 `main` / 根目录）
+>
+> 下面是当时的步骤和验证清单，留作以后迁移或重建时参考。
+
 全站是静态文件，没有构建步骤。做完大概 10 分钟。
 
 ## 先确认（已在本机验证过）

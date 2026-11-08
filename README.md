@@ -1,5 +1,9 @@
 # 年轮 Rings · 把个人数据变成年度叙事
 
+**在线体验 → https://setout472.github.io/rings/**
+｜[看示例报告](https://setout472.github.io/rings/web/report.html?demo=1)
+｜[看 79 秒演示](video/demo.mp4)
+
 > 入口页 [index.html](index.html) ｜ 产品说明 [PRODUCT.md](PRODUCT.md) ｜ 部署 [DEPLOY.md](DEPLOY.md)
 >
 > 技术复盘（定稿）[docs/article.md](docs/article.md)
