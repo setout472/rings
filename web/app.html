@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>开始制作 · 年轮 Rings</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='13' fill='none' stroke='%235eead4' stroke-width='2'/%3E%3Ccircle cx='16' cy='16' r='7' fill='none' stroke='%235eead4' stroke-width='2' opacity='.6'/%3E%3Ccircle cx='16' cy='16' r='2' fill='%235eead4'/%3E%3C/svg%3E">
+<style>
+:root{
+  --bg:#0a0b0d; --panel:#12151a; --line:#232830;
+  --ink:#e9edf2; --ink-2:#b7c0cd; --muted:#7e8794;
+  --accent:#5eead4; --accent-soft:rgba(94,234,212,.12);
+  --font:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Hiragino Sans GB","Microsoft YaHei","Noto Sans SC",sans-serif;
+  --mono:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,monospace;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--font);line-height:1.65;
+  min-height:100vh;display:flex;flex-direction:column;-webkit-font-smoothing:antialiased}
+a{color:inherit;text-decoration:none}
+.nav{display:flex;align-items:center;justify-content:space-between;padding:0 24px;height:64px;
+  border-bottom:1px solid rgba(35,40,48,.7)}
+.brand{display:flex;align-items:center;gap:9px;font-weight:800;font-size:16px}
+.brand svg{width:19px;height:19px}
+.nav .back{font-size:13.5px;color:var(--muted)}
+.nav .back:hover{color:var(--ink)}
+
+main{flex:1;display:flex;align-items:center;justify-content:center;padding:40px 24px}
+.stage{width:100%;max-width:720px}
+
+.drop{border:1.5px dashed #2c333d;border-radius:24px;padding:64px 40px;text-align:center;
+  background:var(--panel);transition:.2s}
+.drop.over{border-color:var(--accent);background:rgba(94,234,212,.05)}
+.drop h1{font-size:clamp(24px,3.4vw,34px);letter-spacing:-.03em;margin:22px 0 12px}
+.drop p{color:var(--muted);margin:0 auto;max-width:44ch;font-size:15px}
+.drop .icon{width:56px;height:56px;margin:0 auto;display:block;opacity:.9}
+.actions{display:flex;gap:12px;justify-content:center;margin:30px 0 18px;flex-wrap:wrap}
+.btn{display:inline-flex;align-items:center;gap:8px;padding:12px 22px;border-radius:999px;
+  font-weight:700;font-size:14.5px;background:var(--accent);color:#04231f;cursor:pointer;
+  transition:.2s;border:0;font-family:inherit}
+.btn:hover{transform:translateY(-1px);box-shadow:0 8px 24px rgba(94,234,212,.22)}
+.btn.ghost{background:transparent;color:var(--ink);border:1px solid var(--line)}
+.btn.ghost:hover{border-color:#3a4250;box-shadow:none}
+.hint{font-size:12.5px;color:#5f6875;margin-top:6px}
+
+.progress{text-align:center;width:100%}
+.progress h2{font-size:22px;letter-spacing:-.02em;margin:0 0 22px}
+.bar{height:6px;background:#1b2027;border-radius:99px;overflow:hidden;margin:0 auto;max-width:420px}
+.bar i{display:block;height:100%;width:0;background:linear-gradient(90deg,#2dd4bf,#5eead4);
+  border-radius:99px;transition:width .25s ease}
+.plog{font-family:var(--mono);font-size:12.5px;color:var(--muted);margin-top:16px}
+
+.error{text-align:center;max-width:520px;margin:0 auto}
+.error h2{font-size:24px;margin:0 0 12px}
+.error p{color:var(--ink-2);font-size:15px;margin:0 0 26px}
+
+.privacy{display:flex;gap:10px;align-items:flex-start;justify-content:center;margin-top:34px;
+  font-size:13px;color:var(--muted);text-align:left;max-width:520px;margin-left:auto;margin-right:auto}
+.privacy b{color:var(--accent)}
+[hidden]{display:none !important}
+</style>
+</head>
+<body>
+
+<nav class="nav">
+  <a class="brand" href="../index.html">
+    <svg viewBox="0 0 32 32" fill="none"><circle cx="16" cy="16" r="13" stroke="#5eead4" stroke-width="2"/><circle cx="16" cy="16" r="7" stroke="#5eead4" stroke-width="2" opacity=".55"/><circle cx="16" cy="16" r="2" fill="#5eead4"/></svg>
+    年轮 <span style="font-family:var(--mono);font-size:11px;letter-spacing:.16em;color:var(--muted);font-weight:500">RINGS</span>
+  </a>
+  <a class="back" href="../index.html">← 返回首页</a>
+</nav>
+
+<main>
+  <div class="stage">
+
+    <section id="stage">
+      <div class="drop" id="drop">
+        <svg class="icon" viewBox="0 0 48 48" fill="none" stroke="#5eead4" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M8 34V14a2 2 0 0 1 2-2h8l4 5h16a2 2 0 0 1 2 2v15a2 2 0 0 1-2 2H10a2 2 0 0 1-2-2Z" opacity=".9"/>
+          <path d="M24 30V20m0 0-4 4m4-4 4 4" opacity=".75"/>
+        </svg>
+        <h1>把相册拖进来</h1>
+        <p>照片不会离开这台电脑。解析、统计、出图全部在浏览器里完成。</p>
+        <div class="actions">
+          <label class="btn">
+            选择文件夹
+            <input type="file" id="pickDir" webkitdirectory directory multiple hidden>
+          </label>
+          <label class="btn ghost">
+            选择照片
+            <input type="file" id="pickFiles" accept="image/*" multiple hidden>
+          </label>
+        </div>
+        <p class="hint">JPEG / PNG / TIFF / WebP · HEIC 会退化成按文件名取时间</p>
+      </div>
+
+      <div class="privacy">
+        <span>🔒</span>
+        <span><b>没有服务器，也没有上传这一步。</b><br>
+        页面关掉之后，这些照片的解析结果也不会留在你的浏览器里（除非你自己下载报告）。</span>
+      </div>
+    </section>
+
+    <section class="progress" id="progress" hidden>
+      <h2 id="pTitle">正在读取照片…</h2>
+      <div class="bar"><i id="pBar"></i></div>
+      <p class="plog" id="pLog">—</p>
+    </section>
+
+    <section class="error" id="error" hidden>
+      <h2 id="eTitle">没法生成报告</h2>
+      <p id="eMsg"></p>
+      <button class="btn ghost" id="retry">重新选择</button>
+    </section>
+
+  </div>
+</main>
+
+<script src="js/exif.js"></script>
+<script src="js/cities.js"></script>
+<script src="js/engine.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,17 @@
+__pycache__/
+*.pyc
+.venv/
+.DS_Store
+
+# 录屏用的可拖拽演示数据，本地生成，不进仓库
+demo_photos/
+
+# 视频构建的中间产物（配音、抓帧、临时 profile）。成片 demo.mp4 要提交
+_vendor/
+video/audio/
+video/frames/
+video/.chrome/
+video/*.wav
+video/frames.txt
+video/audio.txt
+video/shots.json

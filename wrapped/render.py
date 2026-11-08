@@ -1,0 +1,596 @@
+"""生成「照片足迹」报告：单个自包含 HTML。"""
+
+from __future__ import annotations
+
+import json
+from datetime import datetime
+
+from .theme import BASE_CSS
+
+REPORT_CSS = r"""
+.hero{padding:88px 0 40px}
+.hero h1{
+  font-size:clamp(38px,6.4vw,72px); line-height:1.12; margin:18px 0 0;
+  font-weight:800; letter-spacing:-.04em;
+}
+.hero h1 em{font-style:normal; color:var(--accent)}
+.hero-sub{margin:20px 0 0; color:var(--ink-2); font-size:clamp(15px,1.6vw,18px); max-width:62ch}
+.hero-sub b{color:var(--ink); font-weight:700}
+
+.statgrid{display:grid; grid-template-columns:repeat(4,1fr); gap:14px; margin:34px 0 46px}
+.stat{
+  background:var(--panel); border:1px solid var(--line); border-radius:var(--radius);
+  padding:22px 20px 18px; position:relative; overflow:hidden;
+}
+.stat::after{
+  content:""; position:absolute; inset:0 auto auto 0; height:2px; width:100%;
+  background:linear-gradient(90deg,var(--accent),transparent); opacity:.55;
+}
+.stat .v{font-size:clamp(30px,4vw,44px)}
+.stat .u{font-size:15px; color:var(--muted); margin-left:4px; font-weight:600}
+.stat .k{margin-top:10px; font-size:13px; color:var(--muted); letter-spacing:.02em}
+
+.years{display:flex; gap:8px; flex-wrap:wrap; margin:0 0 26px}
+.years button{
+  appearance:none; cursor:pointer; border:1px solid var(--line); background:var(--panel);
+  color:var(--ink-2); padding:8px 16px; border-radius:999px; font-size:14px;
+  font-family:inherit; transition:.18s ease;
+}
+.years button:hover{border-color:#3a4250; color:var(--ink)}
+.years button[aria-selected="true"]{
+  background:var(--accent-soft); border-color:rgba(94,234,212,.45); color:var(--accent);
+  font-weight:700;
+}
+
+.mapcard{background:var(--panel); border:1px solid var(--line); border-radius:var(--radius); overflow:hidden}
+.mapcard-head{display:flex; justify-content:space-between; align-items:baseline; gap:16px;
+  padding:20px 22px 14px; flex-wrap:wrap}
+.mapcard-head h2{margin:0; font-size:17px; letter-spacing:-.01em}
+.mapcard-head p{margin:0; font-size:13px}
+.maphead-right{display:flex; align-items:center; gap:12px}
+.maplink{appearance:none;cursor:pointer;background:var(--accent-soft);
+  border:1px solid rgba(94,234,212,.4); color:var(--accent); font-family:inherit;
+  font-size:12.5px; padding:5px 12px; border-radius:999px; white-space:nowrap}
+.maplink:hover{background:rgba(94,234,212,.2)}
+#map{height:460px; background:#0d1014; position:relative}
+#map .leaflet-container{background:#0d1014}
+.mapempty{display:flex; height:100%; align-items:center; justify-content:center;
+  color:var(--muted); font-size:14px}
+.leaflet-container{font-family:var(--font)}
+.leaflet-control-attribution{background:rgba(10,11,13,.7)!important; color:#66707d!important; font-size:10px}
+.leaflet-control-attribution a{color:#8b94a3!important}
+
+.panel{background:var(--panel); border:1px solid var(--line); border-radius:var(--radius); padding:24px 22px}
+.panel h2{margin:0 0 18px; font-size:17px}
+section.block{margin:46px 0}
+
+.bars{display:flex; flex-direction:column; gap:11px}.bar-row{display:grid; grid-template-columns:88px 1fr 46px; gap:12px; align-items:center; font-size:14px}
+.bar-row .name{color:var(--ink-2); white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+.bar-track{height:8px; background:#1b2027; border-radius:99px; overflow:hidden}
+.bar-fill{height:100%; border-radius:99px; background:linear-gradient(90deg,#2dd4bf,#5eead4);
+  transform-origin:left; animation:grow .9s cubic-bezier(.2,.7,.3,1) both}
+@keyframes grow{from{transform:scaleX(0)} to{transform:scaleX(1)}}
+.bar-row .n{text-align:right; color:var(--muted); font-variant-numeric:tabular-nums; font-size:13px}
+
+.cal-wrap{overflow-x:auto; padding:2px 0 10px}
+.cal{display:grid; grid-auto-flow:column; grid-template-rows:repeat(7,14px); gap:3px; width:max-content}
+.cal i,.cal-legend i{display:block; width:14px; height:14px; border-radius:4px; background:#171b21}
+.cal i.blank{background:transparent}
+.cal i.lv1,.cal-legend i.lv1{background:rgba(94,234,212,.22)}
+.cal i.lv2,.cal-legend i.lv2{background:rgba(94,234,212,.42)}
+.cal i.lv3,.cal-legend i.lv3{background:rgba(94,234,212,.68)}
+.cal i.lv4,.cal-legend i.lv4{background:#5eead4}
+.cal i:hover{outline:1px solid rgba(255,255,255,.5); outline-offset:1px}
+.cal-legend{display:flex; align-items:center; gap:6px; margin-top:14px;
+  font-size:12px; color:var(--muted); font-family:var(--mono)}
+#calnote b{font-weight:700}
+
+.trip{display:grid; grid-template-columns:104px 1fr; gap:22px; padding:26px 0; border-top:1px solid var(--line);
+  cursor:pointer; transition:background .2s}
+.trip:hover{background:linear-gradient(90deg,rgba(94,234,212,.04),transparent 60%)}
+.trip:hover h3{color:var(--accent)}
+.trip:first-child{border-top:0}
+.trip-date{font-variant-numeric:tabular-nums; padding-top:4px}
+.trip-date .d{display:block; font-size:22px; font-weight:800; letter-spacing:-.02em}
+.trip-date .y{display:block; font-size:12px; color:var(--muted); font-family:var(--mono); letter-spacing:.1em}
+.trip-body h3{margin:0; font-size:21px; letter-spacing:-.02em}
+.trip-meta{margin:6px 0 0; font-size:13.5px; color:var(--muted); font-variant-numeric:tabular-nums}
+.strip{display:flex; gap:8px; margin-top:16px; overflow-x:auto; padding-bottom:6px; scrollbar-width:thin}
+.strip img{height:118px; width:auto; border-radius:10px; object-fit:cover; flex:0 0 auto;
+  border:1px solid var(--line); background:#1a1e24}
+.strip::-webkit-scrollbar{height:6px}
+.strip::-webkit-scrollbar-thumb{background:#2a3038; border-radius:99px}
+
+.quality{background:var(--panel-2); border:1px solid var(--line); border-radius:var(--radius); padding:26px 24px}
+.quality h2{margin:0 0 6px; font-size:17px}
+.quality > p{margin:0 0 20px; color:var(--muted); font-size:13.5px; max-width:70ch}
+.kv{display:grid; grid-template-columns:repeat(auto-fit,minmax(190px,1fr)); gap:16px 26px}
+.kv div .k{font-size:12.5px; color:var(--muted); margin-bottom:3px}
+.kv div .v{font-size:19px; font-weight:700; font-variant-numeric:tabular-nums; letter-spacing:-.02em}
+.kv div .v small{font-size:12px; color:var(--muted); font-weight:500; margin-left:4px; letter-spacing:0}
+
+footer{padding:56px 0 72px; color:var(--muted); font-size:13px}
+footer .privacy{display:flex; gap:10px; align-items:flex-start; color:var(--ink-2); font-size:14px;
+  background:var(--accent-soft); border:1px solid rgba(94,234,212,.22); border-radius:14px; padding:16px 18px; margin-bottom:22px}
+footer .privacy b{color:var(--accent)}
+
+@media (max-width:860px){
+  .statgrid{grid-template-columns:repeat(2,1fr)}
+  .trip{grid-template-columns:1fr; gap:10px}
+  .trip-date{display:flex; align-items:baseline; gap:10px}
+  .trip-date .d,.trip-date .y{display:inline}
+  .hero{padding:60px 0 30px}
+  #map{height:380px}
+}
+"""
+
+BODY = r"""
+<div class="wrap">
+  <header class="hero">
+    <div class="kicker">Photo Footprint / 照片足迹</div>
+    <h1>你的相册，<br>替你记得<em>去过哪里</em>。</h1>
+    <p class="hero-sub">
+      扫描了 <b id="hTotal">—</b> 张照片，其中 <b id="hGps">—</b> 张带定位，
+      识别出 <b id="hTrips">—</b> 次出门远行。所有计算都在本机完成。
+    </p>
+  </header>
+
+  <section class="statgrid" id="statgrid"></section>
+
+  <nav class="years" id="years" aria-label="年份筛选"></nav>
+
+  <section class="mapcard reveal">
+    <div class="mapcard-head">
+      <h2>足迹地图</h2>
+      <div class="maphead-right">
+        <p class="muted" id="mapnote"></p>
+        <button class="maplink" id="resetView" hidden>重置视图</button>
+      </div>
+    </div>
+    <div id="map"><div class="mapempty">正在绘制…</div></div>
+  </section>
+
+  <section class="block">
+    <div class="panel reveal">
+      <h2>去得最多的城市</h2>
+      <p class="muted" style="margin:-10px 0 16px;font-size:13px">不含常住地 · 按照片数量排序</p>
+      <div class="bars" id="cities"></div>
+    </div>
+  </section>
+
+  <section class="block">
+    <div class="panel reveal">
+      <h2>拍摄日历</h2>
+      <p class="muted" id="calnote" style="margin:-8px 0 18px;font-size:13.5px;line-height:1.8">…</p>
+      <div class="cal-wrap"><div class="cal" id="cal"></div></div>
+      <div class="cal-legend"><span>少</span><i class="lv1"></i><i class="lv2"></i><i class="lv3"></i><i class="lv4"></i><span>多</span></div>
+    </div>
+  </section>
+
+  <section class="block">
+    <h2 style="font-size:17px;margin:0 0 4px">行程记录</h2>
+    <p class="muted" style="margin:0 0 8px;font-size:13.5px">按时间倒序。一条轨迹 = 一次离家超过 100km、且停留超过 48 小时的出行。</p>
+    <div id="trips"></div>
+  </section>
+
+  <section class="block">
+    <div class="quality reveal">
+      <h2>这份报告有多可信</h2>
+      <p>不是所有照片都带定位，也不是所有定位都准确。下面把这些不确定性全部列出来——
+         一个报告如果不告诉你它哪里可能错了，那它就不值得信。</p>
+      <div class="kv" id="quality"></div>
+    </div>
+  </section>
+
+  <footer>
+    <div class="privacy">
+      <span>🔒</span>
+      <span><b>本报告在你自己的电脑上生成，没有一张照片被上传。</b><br>
+      生成方式是本地脚本读取 EXIF 后写成一个 HTML 文件，你可以断网打开它。</span>
+    </div>
+    <div id="genline"></div>
+  </footer>
+</div>
+
+<script id="payload" type="application/json">__PAYLOAD__</script>
+"""
+
+JS = r"""
+(function(){
+  // 报告页是纯前端渲染的，出错时给一行能看懂的原因，而不是留一片空白
+  window.addEventListener('error', function(ev){
+    var box = document.createElement('div');
+    box.style.cssText = 'position:fixed;left:0;right:0;bottom:0;z-index:99999;background:#7f1d1d;' +
+      'color:#fff;padding:12px 16px;font:12.5px ui-monospace,monospace;line-height:1.5';
+    box.textContent = '渲染出错：' + (ev.message || ev.error) +
+      (ev.filename ? ' @ ' + ev.filename.split('/').pop() + ':' + ev.lineno : '');
+    document.body.appendChild(box);
+  });
+
+  function start(){
+  var payloadNode = document.getElementById('payload');
+  var P = null;
+  try { P = JSON.parse(payloadNode.textContent); } catch(e) {}
+  if (!P || !P.years || !P.years.length){
+    document.querySelector('.wrap').innerHTML =
+      '<div style="padding:140px 0;text-align:center;color:#7e8794;font-size:15px">' +
+      '没有可展示的数据。<br><br>' +
+      '<a href="app.html" style="color:#5eead4;text-decoration:underline">回到首页重新生成</a></div>';
+    return;
+  }
+  var M = P.meta || {};
+  var PALETTE = ['#5eead4','#fbbf24','#f472b6','#818cf8','#34d399','#fb923c','#60a5fa','#e879f9'];
+  var idx = 0, map = null, layer = null, polys = [];
+  var reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var leafletAsked = false;
+  var pendingTrip = null;   // ?trip=N 在 Leaflet 到达前先记下，加载完再补一次
+
+  // 地图库异步加载：CDN 慢或挂掉时，报告其余部分必须照常渲染。
+  // 先画 SVG 简图，Leaflet 到了再升级成真地图。
+  function ensureLeaflet(){
+    if (window.L || leafletAsked) return;
+    leafletAsked = true;
+    var css = document.createElement('link');
+    css.rel = 'stylesheet';
+    css.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
+    document.head.appendChild(css);
+
+    var s = document.createElement('script');
+    s.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
+    s.onload = function(){
+      map = null;
+      layer = null;
+      renderMap(P.years[idx]);
+      // 地图是异步来的，之前调过的 focusTrip 会因为 map 还不存在而直接返回，
+      // 这里补一次——否则 ?trip=2 这种分享链接永远只会显示全图
+      if (pendingTrip !== null) focusTrip(pendingTrip);
+    };
+    s.onerror = function(){};
+    document.head.appendChild(s);
+  }
+
+  function fmt(n){ return (n==null?0:n).toLocaleString('zh-CN'); }
+  function esc(s){ return String(s==null?'':s).replace(/[&<>"]/g, function(c){
+    return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); }
+
+  function countUp(node, target){
+    if(reduce){ node.textContent = fmt(target); return; }
+    var t0 = performance.now(), dur = 850;
+    function step(t){
+      var k = Math.min(1,(t-t0)/dur), e = 1-Math.pow(1-k,3);
+      node.textContent = fmt(Math.round(target*e));
+      if(k<1) requestAnimationFrame(step);
+    }
+    requestAnimationFrame(step);
+  }
+
+  /* ---------- 顶部四个数字 ---------- */
+  function renderStats(b){
+    var s = b.stats;
+    var cards = [
+      {v:s.trips,       u:'次',  k:'离家的远行'},
+      {v:s.cities,      u:'座',  k:'留下照片的城市'},
+      {v:Math.round(s.max_km), u:'km', k:'离常住地最远的一次'},
+      {v:s.away_days,   u:'天',  k:'在路上的时间'}
+    ];
+    var host = document.getElementById('statgrid');
+    host.innerHTML = cards.map(function(c,i){
+      return '<div class="stat reveal"><div class="v num" data-target="'+c.v+'">0</div>'+
+             '<span class="u">'+c.u+'</span><div class="k">'+c.k+'</div></div>';
+    }).join('');
+    host.querySelectorAll('[data-target]').forEach(function(n){
+      countUp(n, parseInt(n.dataset.target,10));
+    });
+    observeReveal(host);
+  }
+
+  /* ---------- 年份切换 ---------- */
+  function selectYear(i){
+    idx = i;
+    try { history.replaceState(null, '', '#' + i); } catch(e) {}
+    document.querySelectorAll('#years button').forEach(function(b){
+      b.setAttribute('aria-selected', String(parseInt(b.dataset.i,10) === i));
+    });
+    renderAll();
+  }
+
+  function renderYears(){
+    var host = document.getElementById('years');
+    host.innerHTML = P.years.map(function(y,i){
+      return '<button role="tab" data-i="'+i+'">'+esc(y.label)+'</button>';
+    }).join('');
+    host.querySelectorAll('button').forEach(function(btn){
+      btn.addEventListener('click', function(){ selectYear(parseInt(btn.dataset.i,10)); });
+    });
+    // 支持 #2024 这样的链接，直接把报告分享到某一年
+    var h = parseInt((location.hash || '').replace('#',''), 10);
+    if (!isNaN(h) && h >= 0 && h < P.years.length) idx = h;
+    host.querySelectorAll('button').forEach(function(b){
+      b.setAttribute('aria-selected', String(parseInt(b.dataset.i,10) === idx));
+    });
+  }
+
+  /* ---------- 城市排行 ---------- */
+  function renderCities(b){
+    var host = document.getElementById('cities');
+    var list = b.stats.top_cities || [];
+    if(!list.length){ host.innerHTML = '<p class="muted" style="font-size:14px;margin:0">这一年没有可识别的城市</p>'; return; }
+    var max = list[0].n || 1;
+    host.innerHTML = list.map(function(c){
+      var w = Math.max(3, Math.round(c.n/max*100));
+      return '<div class="bar-row"><span class="name">'+esc(c.name)+'</span>'+
+             '<div class="bar-track"><div class="bar-fill" style="width:'+w+'%"></div></div>'+
+             '<span class="n">'+fmt(c.n)+'</span></div>';
+    }).join('');
+  }
+
+  /* ---------- 拍摄日历 ---------- */
+  function renderCalendar(b){
+    var cal = b.stats.cal, host = document.getElementById('cal');
+    if(!cal){ return; }
+    var base = new Date(cal.from + 'T00:00:00');
+    function iso(d){
+      return d.getFullYear() + '-' + ('0'+(d.getMonth()+1)).slice(-2) + '-' + ('0'+d.getDate()).slice(-2);
+    }
+    var html = [];
+    cal.weeks.forEach(function(w, wi){
+      w.forEach(function(v, di){
+        if(v === null){ html.push('<i class="blank"></i>'); return; }
+        var lv = v === 0 ? 0 : v <= 2 ? 1 : v <= 6 ? 2 : v <= 15 ? 3 : 4;
+        var d = new Date(base.getTime() + (wi*7+di)*86400000);
+        html.push('<i class="lv'+lv+'" title="'+iso(d)+' · '+v+' 张"></i>');
+      });
+    });
+    host.innerHTML = html.join('');
+
+    var s = b.stats, q = s.quiet || {};
+    var span = (b.year === null ? '最近 ' + s.span_days + ' 天里' : '这 ' + s.span_days + ' 天里');
+    var note = span + '，你有 <b>' + s.active_days + ' 天</b>按下了快门';
+    if(q.days > 0){
+      note += '；最长的一次沉默 <b>' + q.days + ' 天</b>（' + q.from + ' → ' + q.to + '）';
+    }
+    note += '。';
+    document.getElementById('calnote').innerHTML = note;
+  }
+
+  /* ---------- 行程列表 ---------- */
+  function renderTrips(b){
+    var host = document.getElementById('trips');
+    if(!b.trips.length){
+      host.innerHTML = '<p class="muted" style="padding:24px 0">这一年还没有离常住地超过 100 公里的记录。</p>';
+      return;
+    }
+    host.innerHTML = b.trips.map(function(t,i){
+      var strip = (t.thumbs && t.thumbs.length)
+        ? '<div class="strip">'+t.thumbs.map(function(src){
+            return '<img src="'+src+'" loading="lazy" alt="">'; }).join('')+'</div>'
+        : '';
+      return '<article class="trip reveal" data-i="'+i+'">'+
+        '<div class="trip-date"><span class="d">'+esc(t.start.slice(5))+'</span>'+
+        '<span class="y">'+esc(t.start.slice(0,4))+'</span></div>'+
+        '<div class="trip-body"><h3>'+esc(t.title)+'</h3>'+
+        '<p class="trip-meta">'+esc(t.start)+' → '+esc(t.end)+' · '+t.days+' 天 · '+
+        fmt(t.photos)+' 张照片 · 最远 '+Math.round(t.max_km)+' km</p>'+strip+'</div></article>';
+    }).join('');
+    observeReveal(host);
+    host.querySelectorAll('.trip').forEach(function(node){
+      node.addEventListener('click', function(){ focusTrip(parseInt(node.dataset.i, 10)); });
+    });
+  }
+
+  /* ---------- 点开一条行程：把地图拉到那条路线上 ---------- */
+  function focusTrip(i){
+    if(!window.L || !map) return;
+    var t = P.years[idx].trips[i];
+    if(!t) return;
+    var pts = (t.poly && t.poly.length) ? t.poly : [t.center];
+    map.fitBounds(L.latLngBounds(pts), {padding:[80,80], maxZoom:12});
+    polys.forEach(function(pl,k){
+      if(pl) pl.setStyle({weight: k===i?5:2.2, opacity: k===i?1:.22});
+    });
+    document.getElementById('mapnote').textContent =
+      t.title + ' · ' + t.days + ' 天 · ' + t.photos + ' 张照片';
+    document.getElementById('resetView').hidden = false;
+    document.getElementById('map').scrollIntoView({behavior:'smooth', block:'center'});
+  }
+
+  /* ---------- 地图 ---------- */
+  function renderMap(b){
+    var note = document.getElementById('mapnote');
+    var trips = b.trips;
+    if(!trips.length){
+      note.textContent = '';
+      document.getElementById('resetView').hidden = true;
+      document.getElementById('map').innerHTML = '<div class="mapempty">这一年没有可绘制的轨迹</div>';
+      return;
+    }
+    note.textContent = trips.length + ' 条轨迹 · 点击节点查看行程';
+    if(!window.L){ drawFallback(trips); return; }
+
+    var host = document.getElementById('map');
+    if(!map){
+      host.innerHTML = '';
+      map = L.map(host, {scrollWheelZoom:false, zoomControl:true, attributionControl:true});
+      // Esri 暗色底图：免密钥、无使用门槛、和深色主题天然匹配
+      L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}',{
+        maxZoom:16, attribution:'Tiles &copy; Esri &mdash; Esri, HERE, Garmin, OpenStreetMap'
+      }).addTo(map);
+    }
+    if(layer){ map.removeLayer(layer); }
+    layer = L.layerGroup().addTo(map);
+
+    var bounds = [];
+    L.circleMarker([P.home.lat, P.home.lon], {
+      radius:5, color:'#ffffff', weight:2, fillColor:'#0a0b0d', fillOpacity:1
+    }).bindTooltip('常住地 · '+esc(P.home.city), {direction:'top'}).addTo(layer);
+    bounds.push([P.home.lat, P.home.lon]);
+
+    polys = [];
+    trips.forEach(function(t,i){
+      var color = PALETTE[i % PALETTE.length];
+      var pl = null;
+      if(t.poly.length > 1){
+        pl = L.polyline(t.poly, {color:color, weight:2.4, opacity:.85}).addTo(layer);
+      }
+      polys.push(pl);
+      L.circleMarker(t.center, {
+        radius:4.5, color:color, weight:2, fillColor:color, fillOpacity:.9
+      }).bindTooltip(esc(t.title)+' · '+t.days+'天', {direction:'top'}).addTo(layer);
+      bounds = bounds.concat(t.poly);
+    });
+
+    map.invalidateSize();
+    map.fitBounds(bounds, {padding:[36,36], maxZoom:9});
+    document.getElementById('resetView').hidden = true;
+  }
+
+  function drawFallback(trips){
+    var pts = [];
+    trips.forEach(function(t){ pts = pts.concat(t.poly); });
+    var lats = pts.map(function(p){return p[0];}), lons = pts.map(function(p){return p[1];});
+    var minLat = Math.min.apply(null,lats), maxLat = Math.max.apply(null,lats);
+    var minLon = Math.min.apply(null,lons), maxLon = Math.max.apply(null,lons);
+    var W = 1000, H = 460, pad = 40;
+    function x(lon){ return pad + (lon-minLon)/((maxLon-minLon)||1)*(W-2*pad); }
+    function y(lat){ return pad + (maxLat-lat)/((maxLat-minLat)||1)*(H-2*pad); }
+    var svg = '<svg viewBox="0 0 '+W+' '+H+'" style="width:100%;height:100%;display:block">';
+    svg += '<rect width="'+W+'" height="'+H+'" fill="#0d1014"/>';
+    trips.forEach(function(t,i){
+      var c = PALETTE[i % PALETTE.length];
+      var d = t.poly.map(function(p,j){ return (j?'L':'M')+x(p[1]).toFixed(1)+' '+y(p[0]).toFixed(1); }).join(' ');
+      svg += '<path d="'+d+'" fill="none" stroke="'+c+'" stroke-width="2.2" opacity=".8"/>';
+      svg += '<circle cx="'+x(t.center[1]).toFixed(1)+'" cy="'+y(t.center[0]).toFixed(1)+
+             '" r="4" fill="'+c+'"/>';
+    });
+    svg += '</svg>';
+    document.getElementById('map').innerHTML = svg;
+    document.getElementById('mapnote').textContent =
+      trips.length + ' 条轨迹 · 离线简图（未联网，地图瓦片未加载）';
+  }
+
+  /* ---------- 数据质量 ---------- */
+  function renderQuality(){
+    var rows = [
+      {k:'读取到的照片', v:fmt(M.total), s:'张'},
+      {k:'带 GPS 定位', v:fmt(M.with_gps), s:'张（'+(M.gps_ratio*100).toFixed(1)+'%）'},
+      {k:'被判定为 GPS 漂移并剔除', v:fmt(M.drift_removed), s:'个点'},
+      {k:'跨时区拍摄（已回算）', v:fmt(M.timezone_corrected), s:'张'},
+      {k:'重复记录合并', v:fmt(M.duplicates_removed), s:'张'},
+      {k:'时间只能从文件名取（无 EXIF）', v:fmt((M.by_source.filename||0)+(M.by_source.mtime||0)), s:'张'}
+    ];
+    document.getElementById('quality').innerHTML = rows.map(function(r){
+      return '<div><div class="k">'+r.k+'</div><div class="v">'+r.v+'<small>'+r.s+'</small></div></div>';
+    }).join('');
+  }
+
+  function observeReveal(root){
+    if(reduce){ root.querySelectorAll('.reveal').forEach(function(n){ n.classList.add('in'); }); return; }
+    var io = new IntersectionObserver(function(entries){
+      entries.forEach(function(e){ if(e.isIntersecting){ e.target.classList.add('in'); io.unobserve(e.target); } });
+    }, {rootMargin:'0px 0px -8% 0px', threshold:.05});
+    root.querySelectorAll('.reveal').forEach(function(n){ io.observe(n); });
+  }
+
+  function renderAll(){
+    var b = P.years[idx];
+    renderStats(b); renderCities(b); renderCalendar(b); renderTrips(b); renderMap(b);
+    renderQuality();
+  }
+
+  document.getElementById('genline').textContent =
+    '生成于 ' + (M.generated_at || '—') + ' · wrapped v' + (M.version || '—') + ' · 数据未离开本机';
+
+  document.getElementById('hTotal').textContent = fmt(M.total);
+  document.getElementById('hGps').textContent = fmt(M.with_gps);
+  document.getElementById('hTrips').textContent = fmt(P.years[0].stats.trips);
+
+  document.getElementById('resetView').addEventListener('click', function(){
+    renderMap(P.years[idx]);
+  });
+
+  renderYears();
+  renderAll();
+  observeReveal(document);
+  ensureLeaflet();
+
+  // ?trip=2 可以直接定位到某一次行程，方便分享"看这次旅行"
+  try{
+    var tr = parseInt(new URLSearchParams(location.search).get('trip'), 10);
+    if(!isNaN(tr)){ pendingTrip = tr; focusTrip(tr); }
+  }catch(e) {}
+  }
+
+  // 示例数据是异步拿的，所以真正开工要等它到；静态报告没有这个等待，直接跑
+  if (window.__ringsReady && window.__ringsReady.then) {
+    window.__ringsReady.then(start, start);
+  } else {
+    start();
+  }
+})();
+"""
+
+PAGE = r"""<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>__TITLE__</title>
+<style>__CSS__</style>
+</head>
+<body>
+__BODY__
+<script>__JS__</script>
+</body>
+</html>
+"""
+
+
+WEB_LOADER = (
+    'window.__ringsReady=(function(){'
+    'var p=new URLSearchParams(location.search);'
+    # ?demo=1 直接读预生成的示例，访客不装任何东西也能看到完整报告
+    'if(p.get("demo")==="1"){'
+    'return fetch("sample.json").then(function(r){return r.text();})'
+    '.then(function(t){document.getElementById("payload").textContent=t;})'
+    '.catch(function(){});'
+    '}'
+    'try{var raw=sessionStorage.getItem("rings.payload");'
+    'if(raw){document.getElementById("payload").textContent=raw;return;}}catch(e){}'
+    # file:// 下浏览器会禁掉 sessionStorage，window.name 是同标签页跳转唯一能带大对象的地方
+    'if(window.name&&window.name.indexOf("rings:")===0){'
+    'document.getElementById("payload").textContent=window.name.slice(6);}'
+    '})();\n'
+)
+
+
+def compose_html(payload_blob: str, title: str, loader: str = "") -> str:
+    """同一套模板，产两种东西：
+
+    - 静态报告：payload 直接写进 HTML，发给别人就能看
+    - 网页版报告：payload 为空，由 loader 从 sessionStorage 读，配合前端 app 使用
+    """
+    return (PAGE
+            .replace("__CSS__", BASE_CSS + REPORT_CSS)
+            .replace("__BODY__", BODY)
+            .replace("__PAYLOAD__", payload_blob)
+            .replace("__JS__", (loader + "\n" if loader else "") + JS)
+            .replace("__TITLE__", title))
+
+
+def render_footprint(payload: dict, meta: dict, out_path: str, title: str = "我的照片足迹") -> str:
+    data = dict(payload)
+    data["meta"] = meta
+    blob = json.dumps(data, ensure_ascii=False, separators=(",", ":")).replace("</", "<\\/")
+
+    html = compose_html(blob, title)
+    with open(out_path, "w", encoding="utf-8") as f:
+        f.write(html)
+    return out_path
+
+
+def render_web_report(out_path: str, title: str = "年轮 Rings · 你的报告") -> str:
+    """供 web/app.html 跳转使用的空壳报告页。"""
+    html = compose_html("null", title, WEB_LOADER)
+    with open(out_path, "w", encoding="utf-8") as f:
+        f.write(html)
+    return out_path

@@ -1,0 +1,285 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>年轮 Rings · 把相册变成一份年度报告</title>
+<meta name="description" content="本地优先的照片与阅读年度报告。不上传、不注册，一条命令把三年相册变成足迹地图、拍摄日历和年度回顾。">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='13' fill='none' stroke='%235eead4' stroke-width='2'/%3E%3Ccircle cx='16' cy='16' r='7' fill='none' stroke='%235eead4' stroke-width='2' opacity='.6'/%3E%3Ccircle cx='16' cy='16' r='2' fill='%235eead4'/%3E%3C/svg%3E">
+<style>
+:root{
+  --bg:#0a0b0d; --panel:#12151a; --panel-2:#171b21; --line:#232830;
+  --ink:#e9edf2; --ink-2:#b7c0cd; --muted:#7e8794;
+  --accent:#5eead4; --accent-soft:rgba(94,234,212,.12);
+  --maxw:1120px; --radius:20px;
+  --font:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Hiragino Sans GB","Microsoft YaHei","Noto Sans SC",sans-serif;
+  --mono:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,monospace;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--font);line-height:1.65;-webkit-font-smoothing:antialiased}
+a{color:inherit;text-decoration:none}
+.wrap{max-width:var(--maxw);margin:0 auto;padding:0 24px}
+.kicker{font-family:var(--mono);font-size:12px;letter-spacing:.22em;text-transform:uppercase;color:var(--accent)}
+.muted{color:var(--muted)}
+
+/* nav */
+.nav{position:sticky;top:0;z-index:20;backdrop-filter:blur(14px);
+  background:rgba(10,11,13,.72);border-bottom:1px solid rgba(35,40,48,.7)}
+.nav .in{display:flex;align-items:center;justify-content:space-between;height:64px}
+.brand{display:flex;align-items:center;gap:10px;font-weight:800;letter-spacing:-.01em;font-size:17px}
+.brand svg{width:20px;height:20px}
+.brand em{font-style:normal;font-family:var(--mono);font-size:11px;letter-spacing:.16em;
+  color:var(--muted);font-weight:500;text-transform:uppercase}
+.navlinks{display:flex;align-items:center;gap:26px;font-size:14px;color:var(--ink-2)}
+.navlinks a:hover{color:var(--ink)}
+.navlinks .ghost-btn{border:1px solid var(--line);padding:7px 14px;border-radius:999px;font-size:13px}
+.navlinks .ghost-btn:hover{border-color:#3a4250}
+@media(max-width:780px){.navlinks a:not(.ghost-btn){display:none}}
+
+/* hero */
+.hero{position:relative;padding:96px 0 20px;overflow:hidden}
+.hero::before{content:"";position:absolute;inset:-30% 40% 40% -20%;pointer-events:none;
+  background:radial-gradient(60% 60% at 30% 30%,rgba(94,234,212,.14),transparent 65%),
+             radial-gradient(50% 50% at 80% 20%,rgba(129,140,248,.10),transparent 60%);filter:blur(20px)}
+.hero h1{position:relative;font-size:clamp(38px,6.2vw,74px);line-height:1.1;letter-spacing:-.045em;
+  margin:20px 0 0;font-weight:800;max-width:16ch}
+.hero h1 em{font-style:normal;color:var(--accent)}
+.lede{position:relative;margin:24px 0 0;font-size:clamp(16px,1.7vw,19px);color:var(--ink-2);max-width:52ch}
+.cta{position:relative;display:flex;gap:12px;flex-wrap:wrap;margin-top:34px}
+.btn{display:inline-flex;align-items:center;gap:8px;padding:13px 22px;border-radius:999px;
+  font-weight:700;font-size:15px;background:var(--accent);color:#04231f;transition:.2s}
+.btn:hover{transform:translateY(-1px);box-shadow:0 8px 24px rgba(94,234,212,.22)}
+.btn.ghost{background:transparent;color:var(--ink);border:1px solid var(--line)}
+.btn.ghost:hover{border-color:#3a4250;box-shadow:none}
+.tagrow{display:flex;gap:18px;flex-wrap:wrap;margin-top:30px;font-size:13px;color:var(--muted);font-family:var(--mono)}
+.tagrow span::before{content:"·";margin-right:8px;color:var(--accent)}
+
+/* product shot */
+.shot{position:relative;margin:56px 0 0}
+.frame{border:1px solid var(--line);border-radius:var(--radius);overflow:hidden;background:#0d1014;
+  box-shadow:0 40px 120px -30px rgba(0,0,0,.9)}
+.chrome{display:flex;align-items:center;gap:10px;padding:11px 16px;border-bottom:1px solid var(--line);
+  background:#0f1217}
+.chrome i{width:10px;height:10px;border-radius:50%;background:#2b323c;display:block}
+.chrome .url{margin-left:12px;font-family:var(--mono);font-size:12px;color:var(--muted);
+  background:#0a0c0f;border:1px solid var(--line);border-radius:999px;padding:4px 12px}
+.shot .imgwrap{position:relative;max-height:660px;overflow:hidden}
+.shot img{display:block;width:100%}
+.shot .imgwrap::after{content:"";position:absolute;left:0;right:0;bottom:0;height:180px;
+  background:linear-gradient(180deg,transparent,var(--bg))}
+
+/* sections */
+section{padding:96px 0}
+h2{font-size:clamp(26px,3.4vw,40px);letter-spacing:-.035em;margin:0 0 14px;font-weight:800;line-height:1.2}
+.sec-lede{color:var(--ink-2);margin:0 0 48px;max-width:56ch;font-size:16.5px}
+
+.steps{display:grid;grid-template-columns:repeat(3,1fr);gap:18px}
+.step{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:28px 26px}
+.step .n{font-family:var(--mono);font-size:12px;color:var(--accent);letter-spacing:.18em}
+.step h3{margin:18px 0 10px;font-size:19px;letter-spacing:-.02em}
+.step p{margin:0;color:var(--muted);font-size:14.5px}
+.step code{font-family:var(--mono);font-size:12.5px;background:#0c0f13;border:1px solid var(--line);
+  border-radius:8px;padding:8px 10px;display:block;margin-top:14px;color:var(--ink-2);overflow-x:auto;white-space:nowrap}
+@media(max-width:860px){.steps{grid-template-columns:1fr}}
+
+.cards{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+.card{display:block;background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);
+  overflow:hidden;transition:.22s}
+.card:hover{transform:translateY(-3px);border-color:#333b46;box-shadow:0 24px 60px -30px rgba(0,0,0,.9)}
+.card .thumb{height:250px;overflow:hidden;border-bottom:1px solid var(--line);background:#0d1014}
+.card .thumb img{width:100%;height:100%;object-fit:cover;object-position:top}
+.card .body{padding:22px 24px 24px}
+.card .tag{font-family:var(--mono);font-size:11px;letter-spacing:.18em;color:var(--accent);text-transform:uppercase}
+.card h3{margin:10px 0 8px;font-size:21px;letter-spacing:-.02em}
+.card p{margin:0;color:var(--muted);font-size:14.5px}
+.card .go{margin-top:16px;font-size:13.5px;color:var(--accent);font-weight:600}
+@media(max-width:780px){.cards{grid-template-columns:1fr}}
+
+/* privacy */
+.privacy{background:linear-gradient(180deg,rgba(94,234,212,.06),transparent 70%);
+  border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+.privacy .box{max-width:760px}
+.privacy h2{font-size:clamp(28px,4vw,46px)}
+.privacy p{color:var(--ink-2);font-size:17px;margin:0 0 18px}
+.privacy .fact{display:flex;gap:14px;margin-top:34px;flex-wrap:wrap}
+.privacy .fact div{flex:1;min-width:170px;background:rgba(10,11,13,.5);border:1px solid var(--line);
+  border-radius:14px;padding:16px 18px}
+.privacy .fact b{display:block;font-size:22px;letter-spacing:-.02em;margin-bottom:4px}
+.privacy .fact span{font-size:13px;color:var(--muted)}
+
+/* faq */
+details{border-top:1px solid var(--line);padding:20px 0}
+details:last-of-type{border-bottom:1px solid var(--line)}
+summary{cursor:pointer;font-size:16.5px;font-weight:600;list-style:none;display:flex;justify-content:space-between;gap:20px}
+summary::-webkit-details-marker{display:none}
+summary::after{content:"+";color:var(--accent);font-family:var(--mono);font-size:18px;line-height:1}
+details[open] summary::after{content:"−"}
+details p{color:var(--muted);font-size:15px;margin:14px 0 0;max-width:64ch}
+
+footer{border-top:1px solid var(--line);padding:44px 0 60px;color:var(--muted);font-size:13.5px}
+footer .in{display:flex;justify-content:space-between;gap:20px;flex-wrap:wrap;align-items:center}
+footer .links{display:flex;gap:20px}
+footer a:hover{color:var(--ink)}
+.note{margin-top:26px;font-size:13px;color:#5f6875;max-width:60ch;line-height:1.7}
+</style>
+</head>
+<body>
+
+<nav class="nav">
+  <div class="wrap in">
+    <div class="brand">
+      <svg viewBox="0 0 32 32" fill="none"><circle cx="16" cy="16" r="13" stroke="#5eead4" stroke-width="2"/><circle cx="16" cy="16" r="7" stroke="#5eead4" stroke-width="2" opacity=".55"/><circle cx="16" cy="16" r="2" fill="#5eead4"/></svg>
+      年轮 <em>Rings</em>
+    </div>
+    <div class="navlinks">
+      <a href="#how">怎么用</a>
+      <a href="#reports">示例报告</a>
+      <a href="#faq">常见问题</a>
+      <a class="ghost-btn" href="out/footprint.html">看示例</a>
+    </div>
+  </div>
+</nav>
+
+<header class="hero">
+  <div class="wrap">
+    <div class="kicker">Local-first · 本地优先</div>
+    <h1>把相册拖进来，<br>看你这三年<em>去过哪里</em>。</h1>
+    <p class="lede">
+      不用注册，不用上传，也不用装任何东西。照片在浏览器里解析完就出结果——
+      三年、三千张照片，大约两分钟。
+    </p>
+    <div class="cta">
+      <a class="btn" href="web/app.html">开始制作 →</a>
+      <a class="btn ghost" href="web/report.html?demo=1">先看一份示例</a>
+    </div>
+    <div class="tagrow">
+      <span>零上传</span><span>无账号</span><span>单文件输出</span><span>离线可读</span>
+    </div>
+  </div>
+</header>
+
+<div class="shot">
+  <div class="wrap">
+    <div class="frame">
+      <div class="chrome"><i></i><i></i><i></i><span class="url">rings.local/report/2022</span></div>
+      <div class="imgwrap"><img src="out/preview_footprint.png" alt="照片足迹报告预览"></div>
+    </div>
+  </div>
+</div>
+
+<section id="how">
+  <div class="wrap">
+    <div class="kicker">怎么用</div>
+    <h2>三步，没有注册流程。</h2>
+    <p class="sec-lede">整个过程都在你的电脑上完成。没有服务器，也就没有上传这回事。</p>
+    <div class="steps">
+      <div class="step">
+        <div class="n">STEP 01</div>
+        <h3>拖入一个文件夹</h3>
+        <p>整个目录拖进页面，或者点按钮选。支持 JPEG、PNG、TIFF、WebP；HEIC 会退化成按文件名取时间。</p>
+        <code>D:/Pictures</code>
+      </div>
+      <div class="step">
+        <div class="n">STEP 02</div>
+        <h3>在本地解析</h3>
+        <p>浏览器读 EXIF、去重、剔除 GPS 漂移、把跨时区的时间对齐，再切出一次次行程。没有一张照片离开这台机器。</p>
+        <code>EXIF → 清洗 → 聚类 → 统计</code>
+      </div>
+      <div class="step">
+        <div class="n">STEP 03</div>
+        <h3>拿到一份报告</h3>
+        <p>足迹地图、拍摄日历、每次远行的路线。命令行版本还能直接导出单个 HTML 文件，发给别人就能看。</p>
+        <code>out/footprint.html · 单文件</code>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="reports">
+  <div class="wrap">
+    <div class="kicker">示例报告</div>
+    <h2>两份，都是真实的输出。</h2>
+    <p class="sec-lede">用一份编造的三年数据跑出来的，不是设计稿。点开就是最终产物。</p>
+    <div class="cards">
+      <a class="card" href="out/footprint.html">
+        <div class="thumb"><img src="out/card_footprint.png" alt=""></div>
+        <div class="body">
+          <div class="tag">PHOTO FOOTPRINT</div>
+          <h3>照片足迹</h3>
+          <p>3,736 张照片 → 11 次远行、20 座城市、最远 4,181 km。含拍摄日历与单条行程的路线放大。</p>
+          <div class="go">打开报告 →</div>
+        </div>
+      </a>
+      <a class="card" href="out/reading.html">
+        <div class="thumb"><img src="out/card_reading.png" alt=""></div>
+        <div class="body">
+          <div class="tag">READING WRAPPED</div>
+          <h3>阅读 Wrapped</h3>
+          <p>52 条观影记录 → 7 屏叙事。告诉你最集中的月份、比大众苛刻多少分、最长的一次空窗。</p>
+          <div class="go">打开报告 →</div>
+        </div>
+      </a>
+    </div>
+  </div>
+</section>
+
+<section class="privacy">
+  <div class="wrap box">
+    <div class="kicker">为什么这么做</div>
+    <h2>你的照片，<br>不该离开这台电脑。</h2>
+    <p>市面上的相册分析工具都要你先上传。为了一份「看着玩」的报告，这个代价太高了。</p>
+    <p>所以这里没有服务器：解析、清洗、渲染全在本机，输出是静态 HTML。你可以拔掉网线再打开它。</p>
+    <div class="fact">
+      <div><b>0 字节</b><span>上传到服务器的数据</span></div>
+      <div><b>1 个文件</b><span>全部产物，图片内嵌</span></div>
+      <div><b>98.5%</b><span>示例数据里带定位的比例</span></div>
+    </div>
+  </div>
+</section>
+
+<section id="faq">
+  <div class="wrap">
+    <div class="kicker">常见问题</div>
+    <h2>你可能想问的。</h2>
+    <div style="margin-top:34px">
+      <details open>
+        <summary>我的照片会被上传吗？</summary>
+        <p>不会。没有后端服务，脚本只读本地文件，产物是一个 HTML。唯一会联网的地方是报告里的地图瓦片——断网时会自动降级成轨迹简图。</p>
+      </details>
+      <details>
+        <summary>没有 GPS 的照片怎么办？</summary>
+        <p>照样计入总数和日历，只是不上地图。报告底部会如实写出「带定位 X 张 / 共 Y 张」，不假装数据完整。</p>
+      </details>
+      <details>
+        <summary>支持什么格式？</summary>
+        <p>JPEG、PNG、TIFF、WebP 都能读。HEIC 需要额外的解码器，目前会退化成按文件名取时间。</p>
+      </details>
+      <details>
+        <summary>需要装 Python 吗？</summary>
+        <p>不用。网页版就在浏览器里跑，拖进文件夹即可。仓库里也留了命令行版本（<code style="font-family:var(--mono);font-size:13px">python -m wrapped footprint</code>），适合一次处理多个相册或者接自动化。</p>
+      </details>
+      <details>
+        <summary>为什么没有任何「上传」按钮？</summary>
+        <p>因为整个产品没有后端。照片用浏览器自带的 API 读进内存，算完就渲染成页面，关掉标签页就没了。这不是隐私策略，是架构决定的。</p>
+      </details>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap in">
+    <div>年轮 Rings · v0.1.0 · 2026</div>
+    <div class="links">
+      <a href="README.md">文档</a>
+      <a href="out/footprint.html">示例</a>
+      <a href="#how">怎么用</a>
+    </div>
+  </div>
+  <div class="wrap">
+    <p class="note">示例数据为虚构，不对应任何真实的人。这个页面本身也是手写的静态文件——没有框架、没有构建步骤，因为它不需要。</p>
+  </div>
+</footer>
+
+</body>
+</html>
